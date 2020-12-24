@@ -1,0 +1,146 @@
+#!/bin/bash
+
+# Configurable variables
+SEP=' | '
+
+CPU_ON=1
+CPU_SYM=
+
+MEM_ON=1
+MEM_SYM=
+
+BL_ON=1
+BL_SYM=
+
+VOL_ON=1
+VOL_SYM_LOW=
+VOL_SYM_HI=
+VOL_SYM_MUTE=
+
+BAT_ON=1
+BAT_SYM=
+BAT_SYM_PLG=
+BAT_SYM_UNK=
+BAT_CNT=1
+
+DT_ON=1
+DT_SYM=''
+DT_FMT='%a %d %I:%M%p'
+
+status_cpu() {
+  ps -ef | awk '{cpu = cpu + $4} END {print cpu "%"}'
+}
+
+status_mem() {
+  printf '%.0f%%' "$(free -h | awk 'NR == 2 {print $3 * 100 / $2}')"
+}
+
+status_bl () {
+  local bl
+  local max_bl
+
+  printf -v bl '%s' \
+    "$(find /sys/class/backlight/*/brightness | head -n 1 | xargs cat)"
+  printf -v max_bl '%s' \
+    "$(find /sys/class/backlight/*/max_brightness | head -n 1 | xargs cat)"
+  # Multiply by 10^3 inside the arithemetic expansion so the integer arithmetic
+  # will preserve 3 digits after the decimal point. Applying e-3 would provide
+  # 3 decimal points for printf, but since we want the result scaled by 100, we
+  # only apply e-1. printf will round the result to the specified presion.
+  printf '%.0f%%' "$((bl * 1000 / max_bl))e-1"
+}
+
+status_vol () {
+  printf '%s%%' \
+    "$(amixer get Master | tail -n 1 | sed -E 's/.*\[(.*)%\].*/\1/')"
+}
+
+status_vol_state() {
+  local -r vol="${1:-0}"
+  local state
+
+  printf -v state '%s' \
+    "$(amixer get Master | tail -n 1 | sed -E 's/.*\[(.*)\]/\1/')"
+  case "${state}" in
+    on)
+      if [[ "${vol}" -lt 50 ]]; then printf '%s' "${VOL_SYM_LOW}";
+      else printf '%s' "${VOL_SYM_HI}"; fi
+      ;;
+    *)
+      printf '%s' "${VOL_SYM_MUTE}"
+      ;;
+  esac
+}
+
+status_bat_cap () {
+  printf '%s' "$(find /sys/class/power_supply/BAT?/capacity \
+    | head -n "${BAT_CNT}" | xargs cat | tr '\n' '% ' | sed 's/ *$//')"
+}
+
+status_bat_state() {
+  local state
+
+  printf -v state '%s' \
+    "$(find /sys/class/power_supply/BAT?/status | head -n 1 | xargs cat)"
+  case "${state}" in
+    Discharging)
+      printf '%s' "${BAT_SYM}"
+      ;;
+    Charging|Full)
+      printf '%s' "${BAT_SYM_PLG}"
+      ;;
+    *)
+      printf '%s' "${BAT_SYM_UNK}"
+      ;;
+  esac
+}
+
+status_dt () {
+  printf '%s' "$(date +"${DT_FMT}")"
+}
+
+add_stat () {
+  local -r val="$1"
+  local -r sym="$2"
+  local sep
+
+  # Skip the separator for the first status section
+  if [[ -n "${status}" ]]; then sep="${SEP}"; fi
+
+  # Only output the status section if it has a value
+  if [[ -n "${val}" ]]; then
+    if [[ -n "${sym}" ]]; then status="${status}${sep}${sym} ${val}";
+    else status="${status}${sep}${val}"; fi
+  fi
+}
+
+while :; do
+  status=''
+
+  if [[ "${CPU_ON}" -ne 0 ]]; then
+    add_stat "$(status_cpu)" "${CPU_SYM}"
+  fi
+  if [[ "${MEM_ON}" -ne 0 ]]; then
+    add_stat "$(status_mem)" "${MEM_SYM}"
+  fi
+  if [[ "${BL_ON}" -ne 0 ]]; then
+    add_stat "$(status_bl)" "${BL_SYM}"
+  fi
+  if [[ "${VOL_ON}" -ne 0 ]]; then
+    vol="$(status_vol)"
+    add_stat "${vol}" "$(status_vol_state "${vol:0:-1}")"
+  fi
+  if [[ "${BAT_ON}" -ne 0 ]]; then
+    add_stat "$(status_bat_cap)" "$(status_bat_state)"
+  fi
+  if [[ "${DT_ON}" -ne 0 ]]; then
+    add_stat "$(status_dt)" "${DT_SYM}"
+  fi
+  xprop -root -set WM_NAME " ${status} "
+
+  # Sleep until the beginning of the next minute, this way when we are showing
+  # the time, the status updates on the minute
+  ## sleep $((60 - $(date +%S)))
+  sleep 2
+done
+
