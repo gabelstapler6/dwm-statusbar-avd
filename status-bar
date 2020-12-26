@@ -136,7 +136,7 @@ while :; do
   if [[ "${DT_ON}" -ne 0 ]]; then
     add_stat "$(status_dt)" "${DT_SYM}"
   fi
-  xprop -root -set WM_NAME " ${status} "
+  xsetroot -name " ${status} "
 
   # Sleep until the beginning of the next minute, this way when we are showing
   # the time, the status updates on the minute
