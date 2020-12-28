@@ -1,0 +1,17 @@
+#!/bin/bash
+
+run () {
+  # Customizable configuration constants
+  local -r DEFAULT_FMT='%a %d %I:%M%p'
+  local -r DEFAULT_PRE=''
+  local -r DEFAULT_SUF=''
+
+  local -r fmt="${1:-${DEFAULT_FMT}}"
+  local -r pre="${2-${DEFAULT_PRE}}"
+  local -r suf="${3-${DEFAULT_SUF}}"
+
+  printf '%b%b%b' "${pre}" "$(date +"${fmt}")" "${suf}"
+}
+
+run "$@"
+
