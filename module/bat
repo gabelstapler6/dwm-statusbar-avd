@@ -6,7 +6,7 @@ mod_bat () {
   local -r DEFAULT_PRE_PLG=' '
   local -r DEFAULT_PRE_UPLG=' '
   local -r DEFAULT_PRE_UNK=' '
-  local -r DEFAULT_SUF=''
+  local -r DEFAULT_SUF='%'
 
   local -r cnt="${1:-${DEFAULT_CNT}}"
   local -r pre_plg="${2-${DEFAULT_PRE_PLG}}"
@@ -45,7 +45,7 @@ mod_bat () {
 
     # Get the current battery capacity
     read -r cap < "${cap_file}"
-    printf -v res '%b%3d%%%b' "${res}" "${cap}" "${suf}"
+    printf -v res '%b%3d%b' "${res}" "${cap}" "${suf}"
   done
 
   # In res, info for each battery is separated by a space, including a
