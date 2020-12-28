@@ -1,6 +1,6 @@
 #!/bin/bash
 
-run () {
+mod_dt () {
   # Customizable configuration constants
   local -r DEFAULT_FMT='%a %d %I:%M%p'
   local -r DEFAULT_PRE=''
@@ -12,6 +12,4 @@ run () {
 
   printf '%b%b%b' "${pre}" "$(date +"${fmt}")" "${suf}"
 }
-
-run "$@"
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-run () {
+mod_bat () {
   # Customizable configuration constants
   local -r DEFAULT_CNT=1
   local -r DEFAULT_PRE_PLG=' '
@@ -52,6 +52,4 @@ run () {
   # leading space before the first battery info, so remove it
   printf '%b' "${res:1}"
 }
-
-run "$@"
 
