@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# Requires amixer from the alsa-utils package
+
+mod_vol_amixer () {
+  # Customizable configuration constants
+  local -r DEFAULT_PRE_LOW=' '
+  local -r DEFAULT_PRE_HI=' '
+  local -r DEFAULT_PRE_MUTE=' '
+  local -r DEFAULT_SUF='%'
+
+  local -r pre_low="${1-${DEFAULT_PRE_LOW}}"
+  local -r pre_hi="${2-${DEFAULT_PRE_HI}}"
+  local -r pre_mute="${3-${DEFAULT_PRE_MUTE}}"
+  local -r suf="${4-${DEFAULT_SUF}}"
+
+  local pre info stat vol
+
+  info="$(amixer get Master | tail -n 1)"
+  stat="$(sed -E 's/.*\[(.*)\]/\1/' <<< "${info}")"
+  vol="$(sed -E 's/.*\[(.*)%\].*/\1/' <<< "${info}")"
+
+  case "${stat}" in
+    on)
+      if [[ "${vol}" -lt 50 ]]; then pre="${pre_low}";
+      else pre="${pre_hi}"; fi
+      ;;
+    *)
+      pre="${pre_mute}"
+      ;;
+  esac
+  printf '%b%3d%b' "${pre}" "${vol}" "${suf}"
+}
+

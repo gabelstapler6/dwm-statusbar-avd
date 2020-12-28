@@ -1,0 +1,15 @@
+#!/bin/bash
+
+mod_cpu () {
+  # Customizable configuration constants
+  local -r DEFAULT_PRE=' '
+  local -r DEFAULT_SUF=''
+
+  local -r pre="${1-${DEFAULT_PRE}}"
+  local -r suf="${2-${DEFAULT_SUF}}"
+
+  printf '%b' "${pre}"
+  ps --no-headers -A -o %cpu | awk '{cpu = cpu + $1} END {printf "%3.0f", cpu}'
+  printf '%b' "${suf}"
+}
+

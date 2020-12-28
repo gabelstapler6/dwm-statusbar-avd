@@ -1,0 +1,20 @@
+#!/bin/bash
+
+mod_bl () {
+  # Customizable configuration constants
+  local -r DEFAULT_PRE=' '
+  local -r DEFAULT_SUF='%'
+
+  local -r pre="${1-${DEFAULT_PRE}}"
+  local -r suf="${2-${DEFAULT_SUF}}"
+
+  local bl_file bl max_bl_file max_bl
+
+  bl_file="$(find /sys/class/backlight/*/brightness | head -n 1)"
+  max_bl_file="$(dirname "${bl_file}")/max_brightness"
+  read -r bl < "${bl_file}"
+  read -r max_bl < "${max_bl_file}"
+  # Use printf to do floating point arithmetic
+  printf '%b%3.0f%b' "${pre}" "$((bl * 1000 / max_bl))e-1" "${suf}"
+}
+
