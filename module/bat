@@ -1,0 +1,57 @@
+#!/bin/bash
+
+run () {
+  # Customizable configuration constants
+  local -r DEFAULT_CNT=1
+  local -r DEFAULT_PRE_PLG=' '
+  local -r DEFAULT_PRE_UPLG=' '
+  local -r DEFAULT_PRE_UNK=' '
+  local -r DEFAULT_SUF=''
+
+  local -r cnt="${1:-${DEFAULT_CNT}}"
+  local -r pre_plg="${2-${DEFAULT_PRE_PLG}}"
+  local -r pre_uplg="${3-${DEFAULT_PRE_UPLG}}"
+  local -r pre_unk="${4-${DEFAULT_PRE_UNK}}"
+  local -r suf="${5-${DEFAULT_SUF}}"
+
+  local res cap_files cap_file cap stat_file stat
+
+  # Get up to the specified number of battery capacity files
+  readarray -d '' cap_files < \
+    <(find /sys/class/power_supply/BAT?/capacity -type f -print0 \
+    | head -z -n "${cnt}")
+
+  # Get the corresponding status and capacity for each battery
+  for cap_file in "${cap_files[@]}"; do
+    # Compute the name of the status file
+    printf -v stat_file '%s' "$(dirname "${cap_file}")/status";
+    # Get the current battery status
+    if [[ -r "${stat_file}" ]]; then
+      read -r stat < "${stat_file}"
+      case "${stat}" in
+        Charging|Full)
+          printf -v res '%b %b' "${res}" "${pre_plg}"
+          ;;
+        Discharging)
+          printf -v res '%b %b' "${res}" "${pre_uplg}"
+          ;;
+        *)
+          printf -v res '%b %b' "${res}" "${pre_unk}"
+          ;;
+      esac
+    else
+      printf -v res '%b %b' "${res}" "${pre_unk}"
+    fi
+
+    # Get the current battery capacity
+    read -r cap < "${cap_file}"
+    printf -v res '%b%3d%%%b' "${res}" "${cap}" "${suf}"
+  done
+
+  # In res, info for each battery is separated by a space, including a
+  # leading space before the first battery info, so remove it
+  printf '%b' "${res:1}"
+}
+
+run "$@"
+
