@@ -36,6 +36,7 @@ main() {
     if [[ -r "${mod_file}" ]]; then
       # Source the module, compute its key and add it to the ordered array,
       # and call the module function and store the value in the cache
+      # shellcheck source=/dev/null
       source "${mod_file}"
       key="${mod//-/_}"
       stat_ordered_keys+=("${key}")
