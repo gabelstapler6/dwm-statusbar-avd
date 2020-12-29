@@ -27,7 +27,7 @@ main() {
   # Since stat_cache is hash ordered, maintain the display order (as defined
   # by mod_list) of the keys so we can loop over the cache in display order
   # when generating the full status
-  local -a stat_cache_ordered_mods
+  local -a stat_cache_ordered_mods mods
   local mod mod_file
 
   # Map the module file name to the module function
@@ -37,7 +37,8 @@ main() {
 
   # For each module in the list, if the module file exists then source it, add
   # its name to the ordered array, and call its function and cache the value
-  for mod in ${mod_list}; do
+  IFS=', ' read -r -a mods <<< "${mod_list}"
+  for mod in ${mods[@]}; do
     mod_file="${MOD_DIR}/${mod}"
     if [[ -r "${mod_file}" ]]; then
       # shellcheck source=/dev/null
@@ -46,7 +47,6 @@ main() {
       stat_cache["${mod}"]="$("$(mod_to_fn "${mod}")")"
     fi
   done
-
 
   # Construct and display the status by looping over the cached values in  order
   draw_status() {
