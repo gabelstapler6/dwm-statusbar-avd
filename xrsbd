@@ -24,8 +24,9 @@ main() {
 
   # Cache module values so we can reuse them without recomputing them
   local -A stat_cache
-  # Since stat_cache is hash ordered, maintain the display order of cache keys
-  # so we can loop over the cache in display order to generate the full status
+  # Since stat_cache is hash ordered, maintain the display order (as defined
+  # by mod_list) of the keys so we can loop over the cache in display order
+  # when generating the full status
   local -a stat_ordered_keys
   local mod mod_file key
 
@@ -74,7 +75,7 @@ main() {
     # Process each action
     for path in "${actions[@]}"; do
       key="${path:$((ACTION_DIR_LEN + 1))}"
-      # Call the module function if cache entry for the module is defined
+      # Call the module function if the cache entry for the module is defined
       if [[ -v stat_cache[${key}] ]]; then
         stat_cache["${key}"]="$("mod_${key}")"
         do_redraw=1
