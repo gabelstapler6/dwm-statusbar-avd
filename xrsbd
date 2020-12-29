@@ -5,18 +5,16 @@
 main() {
   # Customizable configuration constants
   local -r DEFAULT_MOD_LIST='cpu mem bl vol-amixer bat dt'
-  local -r DEFAULT_RES=.25
   local -r DEFAULT_PRE=' '
   local -r DEFAULT_SEP_L='| '
   local -r DEFAULT_SEP_R=' '
   local -r DEFAULT_SUF=' '
 
   local -r mod_list="${1-${DEFAULT_MOD_LIST}}"
-  local -r res="${2:-${DEFAULT_RES}}"
-  local -r pre="${3-${DEFAULT_PRE}}"
-  local -r sep_l="${4-${DEFAULT_SEP_L}}"
-  local -r sep_r="${5-${DEFAULT_SEP_R}}"
-  local -r suf="${6-${DEFAULT_SUF}}"
+  local -r pre="${2-${DEFAULT_PRE}}"
+  local -r sep_l="${3-${DEFAULT_SEP_L}}"
+  local -r sep_r="${4-${DEFAULT_SEP_R}}"
+  local -r suf="${5-${DEFAULT_SUF}}"
 
   local -r MOD_DIR="$(dirname "$0")"/module
   local -r ACTION_DIR=/tmp/xrsb-action
@@ -84,12 +82,27 @@ main() {
     if [[ -v is_changed ]]; then draw_status; fi
   }
 
-  # Wait for signals
+  # Begin trapping signals
   mkdir -p "${ACTION_DIR}"
   trap process_signal SIGUSR1
 
+  # Wait for signals efficiently. In a loop begin a long-running sleep command
+  # in the background, then wait on it. If we trap a signal before the wait
+  # is over and sleep is still running, trap will call process_signal, then
+  # code execution will resume at the line after the wait statement. So on
+  # that line we kill the (probably) still running sleep command so they
+  # don't pile up, and loop to sleep and wait for the next signal. If we
+  # don't trap a signal during the long running sleep, then the wait ends,
+  # we try to kill the sleep command that has already exited, so it doesn't
+  # matter, and loop to sleep and wait again. Note that we don't make the
+  # sleep too long because if the daemon is killed, the sleep will become
+  # an orphaned process until the sleep period elapses.
+  local -i sleep_pid
   while :; do
-    sleep "${res}"
+    sleep 30m &
+    sleep_pid="$!"
+    wait "${sleep_pid}"
+    kill "${sleep_pid}" 2>/dev/null
   done
 }
 
