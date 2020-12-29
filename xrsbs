@@ -1,7 +1,7 @@
 #!/bin/bash
 
-USAGE="
-USAGE: xrsb-sched <action> [<when>] [<repeat>]
+declare -r USAGE="
+USAGE: xrsbs <action> [<when>] [<repeat>]
 
         action  A comma or space separated list of actions to associate with the
                 update signal.
@@ -22,22 +22,22 @@ EXAMPLES:
         volume and backlight statuses, respectively, send a signal to
         immediately update both of those statuses.
 
-                xsrb-sched 'vol,bl'
+                xrsbs 'vol,bl'
 
         If the daemon interprets the actions 'cpu' and 'mem' to mean update the
         cpu and memory usage statuses, respectively, send a signal to update
         both of those statuses every 5 seconds.
 
-                xsrb-sched 'cpu,mem' 5000 1
+                xrsbs 'cpu,mem' 5000 1
 
         If the daemon interprets the actions 'bat' and 'dt' to mean update the
         battery and date/time statuses, respectively, send a signal to update
         both of those statuses at the top of every minute.
 
-                xsrb-sched 'bat,dt' m true
+                xrsbs 'bat,dt' m true
 "
-DAEMON=xrsbd
-ACTION_DIR=/tmp/xrsb-action/
+declare -r DAEMON=xrsbd
+declare -r ACTION_DIR=/tmp/xrsb-action/
 
 # Convert integer milliseconds to floating point seconds
 ms_to_s () {
