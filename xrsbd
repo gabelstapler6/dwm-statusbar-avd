@@ -1,0 +1,96 @@
+#!/bin/bash
+
+# Global readonly variables can't be shadowed by local variables so wrap
+# our code in a function so we can declare all variables local
+main() {
+  # Customizable configuration constants
+  local -r DEFAULT_RES=.25
+  local -r DEFAULT_MOD_LIST='cpu mem bl vol-amixer bat dt'
+  local -r DEFAULT_PRE=' '
+  local -r DEFAULT_SEP_L='| '
+  local -r DEFAULT_SEP_R=' '
+  local -r DEFAULT_SUF=' '
+
+  local -r res="${1-${DEFAULT_RES}}"
+  local -r mod_list="${2-${DEFAULT_MOD_LIST}}"
+  local -r pre="${3-${DEFAULT_PRE}}"
+  local -r sep_l="${4-${DEFAULT_SEP_L}}"
+  local -r sep_r="${5-${DEFAULT_SEP_R}}"
+  local -r suf="${6-${DEFAULT_SUF}}"
+
+  local -r MOD_DIR="$(dirname "$0")"/module
+  local -r ACTION_DIR=/tmp/xrsb-action
+  local -i ACTION_DIR_LEN=${#ACTION_DIR}
+
+  # Cache module values so we can reuse them without recomputing them
+  local -A stat_cache
+  # Since stat_cache is hash ordered, maintain the display order of cache keys
+  # so we can loop over the cache in display order to generate the full status
+  local -a stat_ordered_keys
+  local mod mod_file key
+
+  # Process the module list
+  for mod in ${mod_list}; do
+    # Check if the module file exists
+    mod_file="${MOD_DIR}/${mod}"
+    if [[ -r "${mod_file}" ]]; then
+      # Source the module, compute its key and add it to the ordered array,
+      # and call the module function and store the value in the cache
+      source "${mod_file}"
+      key="${mod//-/_}"
+      stat_ordered_keys+=("${key}")
+      stat_cache["${key}"]="$("mod_${key}")"
+    fi
+  done
+
+  draw_status() {
+    local stat
+
+    # Construct the status by looping over the cached values in display order
+    for key in "${stat_ordered_keys[@]}"; do
+      printf -v stat '%b%b%b%b' \
+        "${stat}" "${sep_l}" "${stat_cache[${key}]}" "${sep_r}"
+    done
+
+    # Trim the leading left separator and trailing right separator, and
+    # display the status
+    local -ri offset=${#sep_l}
+    local -ri len=$((${#stat} - offset - ${#sep_r}))
+    xsetroot -name "${pre}${stat:${offset}:${len}}${suf}"
+  }
+
+  # Draw the initial status
+  draw_status
+
+  process_signal () {
+    local -a actions
+    local path do_redraw
+
+    # Get the actions and purge the action directory
+    readarray -d '' actions < \
+      <(find "${ACTION_DIR}" -maxdepth 1 -type f -exec rm -f {} + -print0)
+
+    # Process each action
+    for path in "${actions[@]}"; do
+      key="${path:$((ACTION_DIR_LEN + 1))}"
+      # Call the module function if cache entry for the module is defined
+      if [[ -v stat_cache[${key}] ]]; then
+        stat_cache["${key}"]="$("mod_${key}")"
+        do_redraw=1
+      fi
+    done
+
+    if [[ -v do_redraw ]]; then draw_status; fi
+  }
+
+  # Wait for signals
+  mkdir -p "${ACTION_DIR}"
+  trap process_signal SIGUSR1
+
+  while :; do
+    sleep "${res}"
+  done
+}
+
+main "$@"
+
