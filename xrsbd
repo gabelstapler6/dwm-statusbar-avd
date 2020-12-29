@@ -4,15 +4,15 @@
 # our code in a function so we can declare all variables local
 main() {
   # Customizable configuration constants
-  local -r DEFAULT_RES=.25
   local -r DEFAULT_MOD_LIST='cpu mem bl vol-amixer bat dt'
+  local -r DEFAULT_RES=.25
   local -r DEFAULT_PRE=' '
   local -r DEFAULT_SEP_L='| '
   local -r DEFAULT_SEP_R=' '
   local -r DEFAULT_SUF=' '
 
-  local -r res="${1-${DEFAULT_RES}}"
-  local -r mod_list="${2-${DEFAULT_MOD_LIST}}"
+  local -r mod_list="${1-${DEFAULT_MOD_LIST}}"
+  local -r res="${2:-${DEFAULT_RES}}"
   local -r pre="${3-${DEFAULT_PRE}}"
   local -r sep_l="${4-${DEFAULT_SEP_L}}"
   local -r sep_r="${5-${DEFAULT_SEP_R}}"
