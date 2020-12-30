@@ -1,6 +1,6 @@
 #!/bin/bash
 
-declare -r USAGE="
+USAGE="
 USAGE: xrsbs <action> [<when>] [<repeat>]
 
         action  A comma or space separated list of actions to associate with the
@@ -36,8 +36,8 @@ EXAMPLES:
 
                 xrsbs 'bat,dt' m true
 "
-declare -r DAEMON=xrsbd
-declare -r ACTION_DIR=/tmp/xrsb-action/
+DAEMON=xrsbd
+ACTION_DIR=/tmp/xrsb-action/
 
 # Convert integer milliseconds to floating point seconds
 ms_to_s () {
