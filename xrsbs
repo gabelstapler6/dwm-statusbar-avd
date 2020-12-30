@@ -91,6 +91,8 @@ while [[ "${first_run}" -eq 1 || -n "${repeat}" ]]; do
           ##sleep $(((24 - hms[0]) * 3600 - hms[1] * 60 - hms[2]))
           printf '%d\n' $(((24 - hms[0]) * 3600 - hms[1] * 60 - hms[2]))
           ;;
+        *)
+          ;;
       esac
     fi
   fi
@@ -101,6 +103,6 @@ while [[ "${first_run}" -eq 1 || -n "${repeat}" ]]; do
     exit 1
   fi
   for action in "${actions[@]}"; do touch "${ACTION_DIR}/${action}"; done
-  kill -SIGUSR1 "${daemon_pid}"
+  kill -USR1 "${daemon_pid}"
 done
 
