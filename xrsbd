@@ -85,7 +85,7 @@ main() {
       # shellcheck source=/dev/null
       source "${mod_file}"
       stat_cache_ordered_mods+=("${mod}")
-      stat_cache["${mod}"]="$("$(mod_to_fn "${mod}")")"
+      stat_cache["${mod}"]="$(eval "$(mod_to_fn "${mod}")")"
     fi
   done
 
@@ -118,7 +118,7 @@ main() {
     for action_path in "${action_paths[@]}"; do
       mod="${action_path:$((ACTION_DIR_LEN + 1))}"
       if [[ -v stat_cache[${mod}] ]]; then
-        stat_cache["${mod}"]="$("$(mod_to_fn "${mod}")")"
+        stat_cache["${mod}"]="$(eval "$(mod_to_fn "${mod}")")"
         is_changed=1
       fi
     done
