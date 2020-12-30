@@ -3,6 +3,43 @@
 # Global readonly variables can't be shadowed by local variables so wrap
 # our code in a function so we can declare all variables local
 main() {
+  local -r USAGE="
+  USAGE: xrsbd [<mod_list>='cpu mem bl vol-amixer bat dt']
+               [<pre>=' '] [<sep_l>='| '] [<sep_r>=' '] [<suf>=' ']
+
+          mod_list
+                 A comma or space separated list of modules that define both
+                 the order and the content of the status bar.
+
+          pre    The prefix prepended to the beginning of the status bar.
+
+          sep_l  The left separator between status bar sections.
+
+          sep_r  The right separator between status bar sections.
+
+          suf    The suffix appended to the end of the status bar.
+
+  EXAMPLES:
+
+          Any of these will display this help message.
+
+                 xrsbd -h
+                 xrsbd -help
+                 xrsbd --help
+
+          Run the daemon in the background to create a status bar with the
+          default sections, prefix, separators, and suffix.
+
+                  xrsbd &
+
+          Run the daemon in the background to create a status with only the
+          volume and date/time sections, with the entire status between square
+          brackets, and each section surrounded by angle brackets. Note that
+          the first left separator and the last right separator are stripped
+          from the output, so if you want them, simply include them in the
+          prefix and suffix as shown here.
+
+                  xrsbd 'vol-amixer dt' '[<' '<' '>' '>]' &"
   # Customizable configuration constants
   local -r DEFAULT_MOD_LIST='cpu mem bl vol-amixer bat dt'
   local -r DEFAULT_PRE=' '
@@ -32,6 +69,12 @@ main() {
   mod_to_fn() {
     printf 'mod_%s' "${1//-/_}"
   }
+
+  # Check if the user needs help
+  if [[ "${mod_list}" =~ ^(-h|-(-)?help)$ ]]; then
+    printf '%s\n' "${USAGE}" 1>&2
+    exit 0
+  fi
 
   # For each module in the list, if the module file exists then source it, add
   # its name to the ordered array, and call its function and cache the value
