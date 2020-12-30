@@ -1,26 +1,106 @@
-xrsb
-====
+akuma-v-dwm
+===========
 
-xrsb (X Root Window Status Bar) can be used with window managers, such as
-[dwm](https://dwm.suckless.org), that display a status bar based on the
-name property of the X root window. The application consists of a daemon
-(xrsbd) and a scheduler (xrsbs), and is meant to be efficient and precise,
-only updating specific parts of the status bar when necessary.
+akuma-v-dwm is a daemon that displays the status bar for window managers like
+[dwm](https://dwm.suckless.org). It is modular, event driven, and efficient,
+only recomputing the requested parts of the status bar during updates.
 
-xrsbd
+The Daemon
+----------
+
+The daemon creates a modular status bar by updating the X root window name
+when it receives the USR1 signal. It takes an ordered list of modules as a
+parameter, and calls a function in each module to compute a section of the
+status bar. Each section is cached and only recomputed upon request. These
+requests are made by creating empty files with the same names as the modules
+in the `/tmp/avdd` directory, then sending the daemon a USR1 signal.
+
+The Scheduler
+-------------
+
+The scheduler creates request files in `/tmp/avdd`, then sends the USR1
+signal to the daemon. It can send one signal to update multiple status bar
+sections by creating a request file for each section to update, and can send
+the signal immediately, after some delay, or repeatedly at some interval.
+
+Installation
+------------
+
+Clone the repo.
+
+```Shell
+git clone https://gitlab.com/narvin/avd
+```
+
+Usage
 -----
-The xrsbd daemon maintains and updates the status bar (root window name). It
-traps the SIGUSR1 signal that tells it that it's time to update. A client,
-such as the scheduler, can create action files in a designated action directory
-to specify which parts of the status bar the daemon should update. When the
-daemon receives the signal, it looks in the action directory for any actions
-that is understands, updates the status bar, and removes those files.
 
-xrsbs
------
-The xrsbs scheduler creates action files in the action directory, then sends
-the SIGUSR1 signal to a daemon. The scheduler can send one signal to perform
-multiple actions by creating multiple action files, and can create the action
-file(s) and send the signal immediately, after some delay, or repeatedly at
-some interval.
+The following examples can be executed manually or by putting them in, e.g.,
+your `.xinitrc` file. Note the `&` after long-running commands to make them
+run in the background. If the directory that you cloned the appliction into
+is not in your path, be sure to include the path when calling `avdd` or `avds`.
+
+Start the daemon to create a status bar with the default sections, prefix,
+separators, and suffix.
+
+```Shell
+avdd &
+```
+
+Or, start the daemon to create a status with only the volume and date/time
+sections, with the entire status between square brackets (prefix/suffix), and
+each section surrounded by angle brackets (separators). Note that the first
+left separator and the last right separator are stripped from the output, so if
+you want them back, simply include them in the prefix and suffix as shown here.
+
+```Shell
+avdd 'vol-amixer dt' '[<' '<' '>' '>]' &
+```
+
+Next, schedule the battery info and the date and time to be updated at
+the top of each minute.
+
+```Shell
+avds 'bat,dt' m true &
+```
+
+Then schedule the CPU and memory usage to be updated every 5 seconds.
+
+```Shell
+avds 'cpu mem' 5000 true &
+```
+
+Finally, you can add these commmands to your volume and brightness keybindings
+to update the status when those keys are pressed. Note that these jobs don't
+need to be backgrounded since they run immediately and exit.
+
+```Shell
+avds vol-amixer
+avds bl
+```
+
+Modules
+-------
+
+To create your own module, write a bash shell script with a function called
+`mod_<name>` where `<name>` is the filename of your script, with dashes
+replaced with underscores. For instance, if your module file is called
+`weather-wttr`, it should contain a function called `mod_weather_wttr`. This
+function should print to stdout whatever you want to appear in its section
+of the status bar (so it should be concise with no newline characters). Then
+place your script in the `module` directory.
+
+To include your module output in the status bar, start the daemon with
+the module list parameter and include the name of your script in the
+list. For instance, if you wanted to have a status bar that consisited of
+your hypothetical weather-wttr module followed by the date/time, you would
+start the daemon like this: `avdd 'weather-wttr dt' &`.
+
+Please feel free to submit a pull request to have your module
+included as part of this repo. And for inspiration and examples of
+modules you might want to create, check out the bar-functions from
+[dwm-bar](https://github.com/joestandring/dwm-bar), which this project draws
+heavily upon. Please note that those bar-functions are not compatible with
+the akuma-v-dwm daemon, but they could very easily be modified to work with
+this daemon.
 

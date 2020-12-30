@@ -1,33 +1,33 @@
 #!/bin/bash
 
 USAGE="
-USAGE: xrsbd [<mod_list>='cpu mem bl vol-amixer bat dt']
-             [<pre>=' '] [<sep_l>='| '] [<sep_r>=' '] [<suf>=' ']
+USAGE: avdd [<mod_list>='cpu mem bl vol-amixer bat dt']
+            [<pre>=' '] [<sep_l>='| '] [<sep_r>=' '] [<suf>=' ']
 
         mod_list
-               A comma or space separated list of modules that define both
-               the order and the content of the status bar.
+                A comma or space separated list of modules that define both
+                the order and the content of the status bar.
 
-        pre    The prefix prepended to the beginning of the status bar.
+        pre     The prefix prepended to the beginning of the status bar.
 
-        sep_l  The left separator between status bar sections.
+        sep_l   The left separator between status bar sections.
 
-        sep_r  The right separator between status bar sections.
+        sep_r   The right separator between status bar sections.
 
-        suf    The suffix appended to the end of the status bar.
+        suf     The suffix appended to the end of the status bar.
 
 EXAMPLES:
 
         Any of these will display this help message.
 
-                xrsbd -h
-                xrsbd -help
-                xrsbd --help
+                avdd -h
+                avdd -help
+                avdd --help
 
         Run the daemon in the background to create a status bar with the
         default sections, prefix, separators, and suffix.
 
-                xrsbd &
+                avdd &
 
         Run the daemon in the background to create a status with only the
         volume and date/time sections, with the entire status between square
@@ -36,24 +36,22 @@ EXAMPLES:
         from the output, so if you want them, simply include them in the
         prefix and suffix as shown here.
 
-                xrsbd 'vol-amixer dt' '[<' '<' '>' '>]' &
+                avdd 'vol-amixer dt' '[<' '<' '>' '>]' &
 "
-# Customizable configuration constants
 DEFAULT_MOD_LIST='cpu mem bl vol-amixer bat dt'
 DEFAULT_PRE=' '
 DEFAULT_SEP_L='| '
 DEFAULT_SEP_R=' '
 DEFAULT_SUF=' '
+MOD_DIR="$(dirname "$0")"/module
+ACTION_DIR=/tmp/avdd
+ACTION_DIR_LEN=${#ACTION_DIR}
 
 mod_list="${1-${DEFAULT_MOD_LIST}}"
 pre="${2-${DEFAULT_PRE}}"
 sep_l="${3-${DEFAULT_SEP_L}}"
 sep_r="${4-${DEFAULT_SEP_R}}"
 suf="${5-${DEFAULT_SUF}}"
-
-MOD_DIR="$(dirname "$0")"/module
-ACTION_DIR=/tmp/xrsb-action
-ACTION_DIR_LEN=${#ACTION_DIR}
 
 # Map the module file name to the module function
 mod_to_fn() {

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 USAGE="
-USAGE: xrsbs <action> [<when>] [<repeat>]
+USAGE: avds <action> [<when>] [<repeat>]
 
         action  A comma or space separated list of actions to associate with the
                 update signal.
@@ -22,22 +22,22 @@ EXAMPLES:
         volume and backlight statuses, respectively, send a signal to
         immediately update both of those statuses.
 
-                xrsbs 'vol,bl'
+                avds 'vol,bl'
 
         If the daemon interprets the actions 'cpu' and 'mem' to mean update the
         cpu and memory usage statuses, respectively, send a signal to update
         both of those statuses every 5 seconds.
 
-                xrsbs 'cpu,mem' 5000 1
+                avds 'cpu,mem' 5000 1
 
         If the daemon interprets the actions 'bat' and 'dt' to mean update the
         battery and date/time statuses, respectively, send a signal to update
         both of those statuses at the top of every minute.
 
-                xrsbs 'bat,dt' m true
+                avds 'bat,dt' m true
 "
-DAEMON=xrsbd
-ACTION_DIR=/tmp/xrsb-action/
+DAEMON=avdd
+ACTION_DIR=/tmp/"${DAEMON}"
 
 # Convert integer milliseconds to floating point seconds
 ms_to_s () {
