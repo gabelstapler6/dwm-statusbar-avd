@@ -79,7 +79,7 @@ main() {
   # For each module in the list, if the module file exists then source it, add
   # its name to the ordered array, and call its function and cache the value
   IFS=', ' read -r -a mods <<< "${mod_list}"
-  for mod in ${mods[@]}; do
+  for mod in "${mods[@]}"; do
     mod_file="${MOD_DIR}/${mod}"
     if [[ -r "${mod_file}" ]]; then
       # shellcheck source=/dev/null
