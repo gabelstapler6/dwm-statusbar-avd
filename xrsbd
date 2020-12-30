@@ -1,153 +1,140 @@
 #!/bin/bash
 
-# Global readonly variables can't be shadowed by local variables so wrap
-# our code in a function so we can declare all variables local
-main() {
-  local -r USAGE="
-  USAGE: xrsbd [<mod_list>='cpu mem bl vol-amixer bat dt']
-               [<pre>=' '] [<sep_l>='| '] [<sep_r>=' '] [<suf>=' ']
+USAGE="
+USAGE: xrsbd [<mod_list>='cpu mem bl vol-amixer bat dt']
+             [<pre>=' '] [<sep_l>='| '] [<sep_r>=' '] [<suf>=' ']
 
-          mod_list
-                 A comma or space separated list of modules that define both
-                 the order and the content of the status bar.
+        mod_list
+               A comma or space separated list of modules that define both
+               the order and the content of the status bar.
 
-          pre    The prefix prepended to the beginning of the status bar.
+        pre    The prefix prepended to the beginning of the status bar.
 
-          sep_l  The left separator between status bar sections.
+        sep_l  The left separator between status bar sections.
 
-          sep_r  The right separator between status bar sections.
+        sep_r  The right separator between status bar sections.
 
-          suf    The suffix appended to the end of the status bar.
+        suf    The suffix appended to the end of the status bar.
 
-  EXAMPLES:
+EXAMPLES:
 
-          Any of these will display this help message.
+        Any of these will display this help message.
 
-                 xrsbd -h
-                 xrsbd -help
-                 xrsbd --help
+                xrsbd -h
+                xrsbd -help
+                xrsbd --help
 
-          Run the daemon in the background to create a status bar with the
-          default sections, prefix, separators, and suffix.
+        Run the daemon in the background to create a status bar with the
+        default sections, prefix, separators, and suffix.
 
-                  xrsbd &
+                xrsbd &
 
-          Run the daemon in the background to create a status with only the
-          volume and date/time sections, with the entire status between square
-          brackets, and each section surrounded by angle brackets. Note that
-          the first left separator and the last right separator are stripped
-          from the output, so if you want them, simply include them in the
-          prefix and suffix as shown here.
+        Run the daemon in the background to create a status with only the
+        volume and date/time sections, with the entire status between square
+        brackets, and each section surrounded by angle brackets. Note that
+        the first left separator and the last right separator are stripped
+        from the output, so if you want them, simply include them in the
+        prefix and suffix as shown here.
 
-                  xrsbd 'vol-amixer dt' '[<' '<' '>' '>]' &"
-  # Customizable configuration constants
-  local -r DEFAULT_MOD_LIST='cpu mem bl vol-amixer bat dt'
-  local -r DEFAULT_PRE=' '
-  local -r DEFAULT_SEP_L='| '
-  local -r DEFAULT_SEP_R=' '
-  local -r DEFAULT_SUF=' '
+                xrsbd 'vol-amixer dt' '[<' '<' '>' '>]' &
+"
+# Customizable configuration constants
+DEFAULT_MOD_LIST='cpu mem bl vol-amixer bat dt'
+DEFAULT_PRE=' '
+DEFAULT_SEP_L='| '
+DEFAULT_SEP_R=' '
+DEFAULT_SUF=' '
 
-  local -r mod_list="${1-${DEFAULT_MOD_LIST}}"
-  local -r pre="${2-${DEFAULT_PRE}}"
-  local -r sep_l="${3-${DEFAULT_SEP_L}}"
-  local -r sep_r="${4-${DEFAULT_SEP_R}}"
-  local -r suf="${5-${DEFAULT_SUF}}"
+mod_list="${1-${DEFAULT_MOD_LIST}}"
+pre="${2-${DEFAULT_PRE}}"
+sep_l="${3-${DEFAULT_SEP_L}}"
+sep_r="${4-${DEFAULT_SEP_R}}"
+suf="${5-${DEFAULT_SUF}}"
 
-  local -r MOD_DIR="$(dirname "$0")"/module
-  local -r ACTION_DIR=/tmp/xrsb-action
-  local -i ACTION_DIR_LEN=${#ACTION_DIR}
+MOD_DIR="$(dirname "$0")"/module
+ACTION_DIR=/tmp/xrsb-action
+ACTION_DIR_LEN=${#ACTION_DIR}
 
-  # Cache module values so we can reuse them without recomputing them
-  local -A stat_cache
-  # Since stat_cache is hash ordered, maintain the display order (as defined
-  # by mod_list) of the keys so we can loop over the cache in display order
-  # when generating the full status
-  local -a stat_cache_ordered_mods mods
-  local mod mod_file
-
-  # Map the module file name to the module function
-  mod_to_fn() {
-    printf 'mod_%s' "${1//-/_}"
-  }
-
-  # Check if the user needs help
-  if [[ "${mod_list}" =~ ^(-h|-(-)?help)$ ]]; then
-    printf '%s\n' "${USAGE}" 1>&2
-    exit 0
-  fi
-
-  # For each module in the list, if the module file exists then source it, add
-  # its name to the ordered array, and call its function and cache the value
-  IFS=', ' read -r -a mods <<< "${mod_list}"
-  for mod in "${mods[@]}"; do
-    mod_file="${MOD_DIR}/${mod}"
-    if [[ -r "${mod_file}" ]]; then
-      # shellcheck source=/dev/null
-      source "${mod_file}"
-      stat_cache_ordered_mods+=("${mod}")
-      stat_cache["${mod}"]="$(eval "$(mod_to_fn "${mod}")")"
-    fi
-  done
-
-  # Construct and display the status by looping over the cached values in  order
-  draw_status() {
-    local mod stat
-    for mod in "${stat_cache_ordered_mods[@]}"; do
-      printf -v stat '%b%b%b%b' \
-        "${stat}" "${sep_l}" "${stat_cache[${mod}]}" "${sep_r}"
-    done
-
-    # Trim the leading left separator and trailing right separator, and
-    # display the status
-    local -ri offset=${#sep_l}
-    local -ri len=$((${#stat} - offset - ${#sep_r}))
-    xsetroot -name "${pre}${stat:${offset}:${len}}${suf}"
-  }
-
-  # Draw the initial status
-  draw_status
-
-  # For each file in the action directory, remove the file, and if a module for
-  # the action is cached, call the module function and update the cache. If
-  # any cache entries were updated, redraw the status.
-  process_signal () {
-    local -a action_paths
-    local action_path mod is_changed
-    readarray -d '' action_paths< \
-      <(find "${ACTION_DIR}" -maxdepth 1 -type f -exec rm -f {} + -print0)
-    for action_path in "${action_paths[@]}"; do
-      mod="${action_path:$((ACTION_DIR_LEN + 1))}"
-      if [[ -v stat_cache[${mod}] ]]; then
-        stat_cache["${mod}"]="$(eval "$(mod_to_fn "${mod}")")"
-        is_changed=1
-      fi
-    done
-    if [[ -v is_changed ]]; then draw_status; fi
-  }
-
-  # Begin trapping signals
-  mkdir -p "${ACTION_DIR}"
-  trap process_signal SIGUSR1
-
-  # Wait for signals efficiently. In a loop begin a long-running sleep command
-  # in the background, then wait on it. If we trap a signal before the wait
-  # is over and sleep is still running, trap will call process_signal, then
-  # code execution will resume at the line after the wait statement. So on
-  # that line we kill the (probably) still running sleep command so they
-  # don't pile up, and loop to sleep and wait for the next signal. If we
-  # don't trap a signal during the long running sleep, then the wait ends,
-  # we try to kill the sleep command that has already exited, so it doesn't
-  # matter, and loop to sleep and wait again. Note that we don't make the
-  # sleep too long because if the daemon is killed, the sleep will become
-  # an orphaned process until the sleep period elapses.
-  local -i sleep_pid
-  while :; do
-    sleep 30m &
-    sleep_pid="$!"
-    wait "${sleep_pid}"
-    kill "${sleep_pid}" 2>/dev/null
-  done
+# Map the module file name to the module function
+mod_to_fn() {
+  printf 'mod_%s' "${1//-/_}"
 }
 
-main "$@"
+# Check if the user needs help
+if [[ "${mod_list}" =~ ^(-h|-(-)?help)$ ]]; then
+  printf '%s' "${USAGE}" 1>&2
+  exit 0
+fi
+
+# For each module in the list, if the module file exists then source it,
+# add its name to the ordered array, and call its function and cache the value
+declare -A stat_cache
+IFS=', ' read -r -a mods <<< "${mod_list}"
+for mod in "${mods[@]}"; do
+  mod_file="${MOD_DIR}/${mod}"
+  if [[ -r "${mod_file}" ]]; then
+    # shellcheck source=/dev/null
+    source "${mod_file}"
+    stat_cache_ordered_mods+=("${mod}")
+    stat_cache["${mod}"]="$(eval "$(mod_to_fn "${mod}")")"
+  fi
+done
+
+# Construct and display the status by looping over the cached values in  order
+draw_status() {
+  local mod stat
+  for mod in "${stat_cache_ordered_mods[@]}"; do
+    printf -v stat '%b%b%b%b' \
+      "${stat}" "${sep_l}" "${stat_cache[${mod}]}" "${sep_r}"
+  done
+
+  # Trim the leading left separator and trailing right separator, and display
+  # the status
+  local -ri offset=${#sep_l}
+  local -ri len=$((${#stat} - offset - ${#sep_r}))
+  xsetroot -name "${pre}${stat:${offset}:${len}}${suf}"
+}
+
+# Draw the initial status
+draw_status
+
+# For each file in the action directory, remove the file, and if a module
+# for the action is cached, call the module function and update the cache. If
+# any cache entries were updated, redraw the status.
+process_signal () {
+  local -a action_paths
+  local action_path mod is_changed
+  readarray -d '' action_paths< \
+    <(find "${ACTION_DIR}" -maxdepth 1 -type f -exec rm -f {} + -print0)
+  for action_path in "${action_paths[@]}"; do
+    mod="${action_path:$((ACTION_DIR_LEN + 1))}"
+    if [[ -v stat_cache[${mod}] ]]; then
+      stat_cache["${mod}"]="$(eval "$(mod_to_fn "${mod}")")"
+      is_changed=1
+    fi
+  done
+  if [[ -v is_changed ]]; then draw_status; fi
+}
+
+# Begin trapping signals
+mkdir -p "${ACTION_DIR}"
+trap process_signal SIGUSR1
+
+# Wait for signals efficiently. In a loop begin a long-running sleep command
+# in the background, then wait on it. If we trap a signal before the wait is
+# over and sleep is still running, trap will call process_signal, then code
+# execution will resume at the line after the wait statement. So on that line
+# we kill the (probably) still running sleep command so they don't pile up,
+# and loop to sleep and wait for the next signal. If we don't trap a signal
+# during the long running sleep, then the wait ends, we try to kill the
+# sleep command that has already exited, so it doesn't matter, and loop to
+# sleep and wait again. Note that we don't make the sleep too long because
+# if the daemon is killed, the sleep will become an orphaned process until
+# the sleep period elapses.
+while :; do
+  sleep 30m &
+  sleep_pid="$!"
+  wait "${sleep_pid}"
+  kill "${sleep_pid}" 2>/dev/null
+done
 
