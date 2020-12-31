@@ -59,15 +59,6 @@ if [[ ! "${when}" =~ ^[0-9]+|[mhd]$ ]]; then
   exit 128
 fi
 
-# Get the daemon PID so we can send the signal to it later. Getting the PID once
-# here is more efficient than getting it each time in the while loop, but if the
-# daemon is restarted and the PID changes, all subsequent updates will fail.
-daemon_pid="$(pgrep --newest --exact "${DAEMON}")"
-if [[ -z "${daemon_pid}" ]]; then
-  printf 'The daemon %s is not running\n' "${DAEMON}" 1>&2
-  exit 1
-fi
-
 # Send the signal if this is the first run or if repeat is on
 first_run=1
 while [[ "${first_run}" -eq 1 || -n "${repeat}" ]]; do
@@ -97,7 +88,8 @@ while [[ "${first_run}" -eq 1 || -n "${repeat}" ]]; do
   fi
 
   # Create the signal data and send the signal to the daemon
-  if [[ "$(ps --no-headers -o '%c' -q "${daemon_pid}")" != "${DAEMON}" ]]; then
+  daemon_pid="$(pgrep --newest --exact "${DAEMON}")"
+  if [[ -z "${daemon_pid}" ]]; then
     printf 'The daemon %s is not running\n' "${DAEMON}" 1>&2
     exit 1
   fi
