@@ -88,8 +88,7 @@ while [[ "${first_run}" -eq 1 || -n "${repeat}" ]]; do
           ;;
         d)
           readarray -t hms < <(date +'%H%n%M%n%S')
-          ##sleep $(((24 - hms[0]) * 3600 - hms[1] * 60 - hms[2]))
-          printf '%d\n' $(((24 - hms[0]) * 3600 - hms[1] * 60 - hms[2]))
+          sleep $(((24 - hms[0]) * 3600 - hms[1] * 60 - hms[2]))
           ;;
         *)
           ;;
