@@ -101,7 +101,7 @@ replaced with underscores. For instance, if your module file is called
 `weather-wttr`, it should contain a function called `mod_weather_wttr`. This
 function should print to stdout whatever you want to appear in its section
 of the status bar (so it should be concise with no newline characters). Then
-place your script in the `module` directory.
+place your script in the `mod` directory.
 
 To include your module output in the status bar, start the daemon with
 the module list parameter and include the name of your script in the

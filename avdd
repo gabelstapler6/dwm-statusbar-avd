@@ -43,7 +43,7 @@ DEFAULT_PRE=' '
 DEFAULT_SEP_L='| '
 DEFAULT_SEP_R=' '
 DEFAULT_SUF=' '
-MOD_DIR="$(dirname "$0")"/module
+MOD_DIR="$(dirname "$0")"/mod
 ACTION_DIR=/tmp/avdd
 ACTION_DIR_LEN=${#ACTION_DIR}
 
