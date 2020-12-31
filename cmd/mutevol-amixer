@@ -1,0 +1,5 @@
+#!/bin/bash
+
+amixer set Master toggle &> /dev/null
+"${0%/*}"/../avds vol-amixer
+

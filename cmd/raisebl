@@ -1,0 +1,13 @@
+#!/bin/bash
+
+read -r -d '' bl_dir < \
+  <(find /sys/class/backlight -mindepth 1 -maxdepth 1 -print0 | head -z -n 1)
+read -r max_bl < "${bl_dir}"/max_brightness
+delta=$((max_bl / 10))
+bl_file="${bl_dir}"/brightness
+read -r bl < "${bl_file}"
+bl2=$((bl + delta))
+if [[ "${bl2}" -gt "${max_bl}" ]]; then bl2="${max_bl}"; fi
+printf '%s' "${bl2}" | sudo tee "${bl_file}" &> /dev/null
+"${0%/*}"/../avds bl
+

@@ -79,6 +79,19 @@ avds vol-amixer
 avds bl
 ```
 
+You can also bind keys to commands like those in the `cmd` directory to
+perform actions and also update the status bar. For instance, you can bind
+keys to these commands to control the backlight and volume while also updating
+the status bar:
+
+```Shell
+./cmd/lowerbl
+./cmd/raisebl
+./cmd/lowervol-amixer
+./cmd/raisevol-amixer
+./cmd/mutevol-amixer
+```
+
 Modules
 -------
 
@@ -103,4 +116,15 @@ modules you might want to create, check out the bar-functions from
 heavily upon. Please note that those bar-functions are not compatible with
 the akuma-v-dwm daemon, but they could very easily be modified to work with
 this daemon.
+
+Commands
+--------
+
+In the `cmd` directory are shell scripts that perform actions that effect
+the status bar and update the status bar, such as changing the backlight or
+volume levels. These commands can be bound to keys, so the action will be
+carried out and the status bar will be updated when the key is pressed.
+
+Please feel free to submit a pull request to have your command included as
+part of this repo.
 
