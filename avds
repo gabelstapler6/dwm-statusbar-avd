@@ -1,43 +1,44 @@
 #!/bin/bash
 
 USAGE="
-USAGE: avds <action> [<when>] [<repeat>]
+USAGE: avds <mod_list> [<when>] [<repeat>]
 
-        action  A comma or space separated list of actions to associate with the
-                update signal.
+        mod_list
+                A comma or space separated list of modules to request that
+                the daemon execute.
 
         when    The integer number of milliseconds to wait before sending the
-                update signal, or one of the following values:
-                  - m to send the update signal at the top of the next minute
-                  - h to send the update signal at the top of the next hour
-                  - d to send the update signal at the top of the next day
-                If not present, the update signal will be sent immediately.
+                request, or one of the following values:
+                  - m to send the update request at the top of the next minute
+                  - h to send the update request at the top of the next hour
+                  - d to send the update request at the top of the next day
+                If not present, the request will be sent immediately.
 
-        repeat  If present, the update signal will be sent repeatedly according
+        repeat  If present, the request will be sent repeatedly according
                 to <when>.
 
 EXAMPLES:
 
-        If the daemon interprets the actions 'vol' and 'bl' to mean update the
-        volume and backlight statuses, respectively, send a signal to
-        immediately update both of those statuses.
+        If there are volume and backlight modules named 'vol' and 'bl' that
+        update the volume and backlight statuses, send a requst to update
+        both of those statuses immediately.
 
                 avds 'vol,bl'
 
-        If the daemon interprets the actions 'cpu' and 'mem' to mean update the
-        cpu and memory usage statuses, respectively, send a signal to update
-        both of those statuses every 5 seconds.
+        If there are cpu and memory usage modules named 'cpu' and 'mem'
+        that update the cpu and memory usage statuses, send a requst to
+        update both of those statuses every 5 seconds.
 
                 avds 'cpu,mem' 5000 1
 
-        If the daemon interprets the actions 'bat' and 'dt' to mean update the
-        battery and date/time statuses, respectively, send a signal to update
-        both of those statuses at the top of every minute.
+        If there are battery and date/time modules named 'bat' and 'dt'
+        that update the battery and date/time statuses, send a requst to
+        update both of those statuses at the top of every minute.
 
                 avds 'bat,dt' m true
 "
 DAEMON=avdd
-ACTION_DIR=/tmp/"${DAEMON}"
+FIFO=/tmp/"${DAEMON}"-fifo
 
 # Convert integer milliseconds to floating point seconds
 ms_to_s () {
@@ -50,7 +51,7 @@ if [[ "$#" -lt 1 || "$#" -gt 3 ]]; then
   exit 128
 fi
 
-IFS=', ' read -r -a actions <<< "$1"
+IFS=', ' read -r -a mods <<< "$1"
 when="${2:-0}"
 repeat="$3"
 
@@ -59,12 +60,12 @@ if [[ ! "${when}" =~ ^[0-9]+|[mhd]$ ]]; then
   exit 128
 fi
 
-# Send the signal if this is the first run or if repeat is on
+# Write to the pipe if this is the first run or if repeat is on
 first_run=1
 while [[ "${first_run}" -eq 1 || -n "${repeat}" ]]; do
   first_run=0
 
-  # Sleep until it's time to send the signal
+  # Sleep until it's time to write to the pipe
   if [[ "${when}" != '0' ]]; then
     if [[ "${when}" =~ ^[0-9]+$ ]]; then
       sleep "$(ms_to_s "${when}")"
@@ -87,13 +88,11 @@ while [[ "${first_run}" -eq 1 || -n "${repeat}" ]]; do
     fi
   fi
 
-  # Create the signal data and send the signal to the daemon
-  daemon_pid="$(pgrep --newest --exact "${DAEMON}")"
-  if [[ -z "${daemon_pid}" ]]; then
+  # Write each command to the pipe
+  if [[ ! -p "${FIFO}" ]]; then
     printf 'The daemon %s is not running\n' "${DAEMON}" 1>&2
     exit 1
   fi
-  for action in "${actions[@]}"; do touch "${ACTION_DIR}/${action}"; done
-  kill -USR1 "${daemon_pid}"
+  for mod in "${mods[@]}"; do printf '%s\n' "${mod}" >> "${FIFO}"; done
 done
 

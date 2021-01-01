@@ -9,19 +9,19 @@ The Daemon
 ----------
 
 The daemon creates a modular status bar by updating the X root window name
-when it receives the USR1 signal. It takes an ordered list of modules as a
-parameter, and calls a function in each module to compute a section of the
-status bar. Each section is cached and only recomputed upon request. These
-requests are made by creating empty files with the same names as the modules
-in the `/tmp/avdd` directory, then sending the daemon a USR1 signal.
+when it receives a request on its named pipe. It takes an ordered list of
+modules as a parameter, and calls a function in each module to compute a
+section of the status bar. Each section is cached and only recomputed upon
+request. These requests are made by writing to a named pipe that the daemon
+creates, `/tmp/avdd-fifo`.
 
 The Scheduler
 -------------
 
-The scheduler creates request files in `/tmp/avdd`, then sends the USR1
-signal to the daemon. It can send one signal to update multiple status bar
-sections by creating a request file for each section to update, and can send
-the signal immediately, after some delay, or repeatedly at some interval.
+The scheduler creates requests by writing a module name to the named pipe for
+each module it wants the daemon to run to update that section of the status
+bar. It can send requests immediately, after some delay, or repeatedly at
+some interval.
 
 Installation
 ------------
@@ -38,7 +38,7 @@ Usage
 The following examples can be executed manually or by putting them in, e.g.,
 your `.xinitrc` file. Note the `&` after long-running commands to make them
 run in the background. If the directory that you cloned the appliction into
-is not in your path, be sure to include the path when calling `avdd` or `avds`.
+is not in your path, be sure to specify the path when calling `avdd` or `avds`.
 
 Start the daemon to create a status bar with the default sections, prefix,
 separators, and suffix.

@@ -44,8 +44,7 @@ DEFAULT_SEP_L='| '
 DEFAULT_SEP_R=' '
 DEFAULT_SUF=' '
 MOD_DIR="$(dirname "$0")"/mod
-ACTION_DIR=/tmp/avdd
-ACTION_DIR_LEN=${#ACTION_DIR}
+FIFO=/tmp/avdd-fifo
 
 mod_list="${1-${DEFAULT_MOD_LIST}}"
 pre="${2-${DEFAULT_PRE}}"
@@ -96,43 +95,38 @@ draw_status() {
 # Draw the initial status
 draw_status
 
-# For each file in the action directory, remove the file, and if a module
-# for the action is cached, call the module function and update the cache. If
-# any cache entries were updated, redraw the status.
-process_signal () {
-  local -a action_paths
-  local action_path mod is_changed
-  readarray -d '' action_paths< \
-    <(find "${ACTION_DIR}" -maxdepth 1 -type f -exec rm -f {} + -print0)
-  for action_path in "${action_paths[@]}"; do
-    mod="${action_path:$((ACTION_DIR_LEN + 1))}"
-    if [[ -v stat_cache[${mod}] ]]; then
-      stat_cache["${mod}"]="$(eval "$(mod_to_fn "${mod}")")"
-      is_changed=1
+# If the module value is in the cache, indicating that the module controls
+# part of the status bar, execute the module function and redraw the status
+# bar if that part of the status bar has changed
+process_cmd () {
+  local -r mod="$1"
+  if [[ -v stat_cache[${mod}] ]]; then
+    local -r new_val="$(eval "$(mod_to_fn "${mod}")")"
+    if [[ "${new_val}" != stat_cache["${mod}"] ]]; then
+      stat_cache["${mod}"]="${new_val}"
+      draw_status
     fi
-  done
-  if [[ -v is_changed ]]; then draw_status; fi
+  fi
 }
 
-# Begin trapping signals
-mkdir -p "${ACTION_DIR}"
-trap process_signal SIGUSR1
+# Setup the named pipe to receive commands
+if [[ ! -p "${FIFO}" ]]; then mkfifo "${FIFO}"; fi
+trap "rm -f ${FIFO}" EXIT
 
-# Wait for signals efficiently. In a loop begin a long-running sleep command
-# in the background, then wait on it. If we trap a signal before the wait is
-# over and sleep is still running, trap will call process_signal, then code
-# execution will resume at the line after the wait statement. So on that line
-# we kill the (probably) still running sleep command so they don't pile up,
-# and loop to sleep and wait for the next signal. If we don't trap a signal
-# during the long running sleep, then the wait ends, we try to kill the
-# sleep command that has already exited, so it doesn't matter, and loop to
-# sleep and wait again. Note that we don't make the sleep too long because
-# if the daemon is killed, the sleep will become an orphaned process until
-# the sleep period elapses.
+# Each time the pipe is emptied out, the inner while loop will finish, so
+# wrap it in an infinte loop to keep blocking until there is data on the pipe
 while :; do
-  sleep 30m &
-  sleep_pid="$!"
-  wait "${sleep_pid}"
-  kill "${sleep_pid}" 2>/dev/null
+  while read -r cmd; do
+    case "${cmd}" in
+      res_quit)
+        exit 0
+        ;;
+      res_*)
+        ;;
+      *)
+        process_cmd "${cmd}"
+        ;;
+    esac
+  done < "${FIFO}"
 done
 
