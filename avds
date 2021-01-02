@@ -51,28 +51,29 @@ ms_to_s () {
   printf '%.3f' "${1}e-3"
 }
 
-# Validate the arguments
+# Validate the number arguments
 if [[ "$#" -lt 1 || "$#" -gt 3 ]]; then
   printf '%s' "${USAGE}" 1>&2
   exit 128
 fi
 
-IFS=', ' read -r -a mods <<< "$1"
+mod_list="$1"
 
 # Check if the user needs help
-# shellcheck disable=SC2128
-if [[ "${mods}" =~ ^(-h|-(-)?help)$ ]]; then
+if [[ "${mod_list}" =~ ^(-h|-(-)?help)$ ]]; then
   printf '%s' "${USAGE}" 1>&2
   exit 0
 fi
 
 when="${2:-0}"
-repeat="$3"
 
+# Validate when
 if [[ ! "${when}" =~ ^[0-9]+|[mhd]$ ]]; then
   printf 'Invalid argument <when>: %s\n' "${when}" 1>&2
   exit 128
 fi
+
+repeat="$3"
 
 # Write to the pipe if this is the first run or if repeat is on
 first_run=1
@@ -107,6 +108,6 @@ while [[ "${first_run}" -eq 1 || -n "${repeat}" ]]; do
     printf 'The daemon %s is not running\n' "${DAEMON}" 1>&2
     exit 1
   fi
-  for mod in "${mods[@]}"; do printf '%s\n' "${mod}" >> "${FIFO}"; done
+  printf '%s\n' "${mod_list}" >> "${FIFO}"
 done
 

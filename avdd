@@ -96,18 +96,22 @@ draw_status() {
 # Draw the initial status
 draw_status
 
-# If the module value is in the cache, indicating that the module controls
-# part of the status bar, execute the module function and redraw the status
-# bar if that part of the status bar has changed
-process_cmd () {
-  local -r mod="$1"
-  if [[ -v stat_cache[${mod}] ]]; then
-    local -r new_val="$(eval "$(mod_to_fn "${mod}")")"
-    if [[ "${new_val}" != stat_cache["${mod}"] ]]; then
-      stat_cache["${mod}"]="${new_val}"
-      draw_status
+# Process a list of mods. If a mod is in the status cache, call the module
+# function to get the new value for that section of the status bar. If any
+# of the new values are different from the cached ones, update the cache
+# and redraw the status bar once after all the mods are processed.
+process_mods () {
+  local mod new_val is_changed
+  for mod in "$@"; do
+    if [[ -v stat_cache[${mod}] ]]; then
+      new_val="$(eval "$(mod_to_fn "${mod}")")"
+      if [[ "${new_val}" != stat_cache["${mod}"] ]]; then
+        stat_cache["${mod}"]="${new_val}"
+        is_changed=1
+      fi
     fi
-  fi
+  done
+  if [[ -v is_changed ]]; then draw_status; fi
 }
 
 # Setup the named pipe to receive commands
@@ -118,15 +122,19 @@ trap "rm -f ${FIFO}" EXIT
 # Each time the pipe is emptied out, the inner while loop will finish, so
 # wrap it in an infinte loop to keep blocking until there is data on the pipe
 while :; do
-  while read -r cmd; do
-    case "${cmd}" in
+  while read -r fifo_mod_list; do
+    case "${fifo_mod_list}" in
+      res_all)
+        process_mods "${mods[@]}"
+        ;;
       res_quit)
         exit 0
         ;;
       res_*)
         ;;
       *)
-        process_cmd "${cmd}"
+        IFS=', ' read -r -a fifo_mods <<< "${fifo_mod_list}"
+        process_mods "${fifo_mods[@]}"
         ;;
     esac
   done < "${FIFO}"
