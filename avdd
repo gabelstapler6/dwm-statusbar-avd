@@ -44,9 +44,16 @@ DEFAULT_SEP_L='| '
 DEFAULT_SEP_R=' '
 DEFAULT_SUF=' '
 MOD_DIR="$(dirname "$0")"/mod
-FIFO=/tmp/avdd-fifo
+FIFO=/tmp/avdd-fifo-"$("$(dirname "$0")"/rpid $$)"
 
 mod_list="${1-${DEFAULT_MOD_LIST}}"
+
+# Check if the user needs help
+if [[ "${mod_list}" =~ ^(-h|-(-)?help)$ ]]; then
+  printf '%s' "${USAGE}" 1>&2
+  exit 0
+fi
+
 pre="${2-${DEFAULT_PRE}}"
 sep_l="${3-${DEFAULT_SEP_L}}"
 sep_r="${4-${DEFAULT_SEP_R}}"
@@ -56,12 +63,6 @@ suf="${5-${DEFAULT_SUF}}"
 mod_to_fn() {
   printf 'mod_%s' "${1//-/_}"
 }
-
-# Check if the user needs help
-if [[ "${mod_list}" =~ ^(-h|-(-)?help)$ ]]; then
-  printf '%s' "${USAGE}" 1>&2
-  exit 0
-fi
 
 # For each module in the list, if the module file exists then source it,
 # add its name to the ordered array, and call its function and cache the value
@@ -111,6 +112,7 @@ process_cmd () {
 
 # Setup the named pipe to receive commands
 if [[ ! -p "${FIFO}" ]]; then mkfifo "${FIFO}"; fi
+# shellcheck disable=SC2064
 trap "rm -f ${FIFO}" EXIT
 
 # Each time the pipe is emptied out, the inner while loop will finish, so
