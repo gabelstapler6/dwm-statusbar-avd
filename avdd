@@ -124,13 +124,13 @@ trap "rm -f ${FIFO}" EXIT
 while :; do
   while read -r fifo_mod_list; do
     case "${fifo_mod_list}" in
-      res_all)
+      daem_all)
         process_mods "${mods[@]}"
         ;;
-      res_quit)
+      daem_quit)
         exit 0
         ;;
-      res_*)
+      daem_*)
         ;;
       *)
         IFS=', ' read -r -a fifo_mods <<< "${fifo_mod_list}"
