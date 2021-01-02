@@ -1,7 +1,7 @@
 #!/bin/bash
 
 USAGE="
-USAGE: avdd [<mod_list>='cpu mem bl vol-amixer bat dt']
+USAGE: avdd [<mod_list>='cpu mem bl vol-amixer bat dt'|-h|-[-]help]
             [<pre>=' '] [<sep_l>='| '] [<sep_r>=' '] [<suf>=' ']
 
         mod_list
