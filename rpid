@@ -1,0 +1,63 @@
+#!/bin/bash
+
+USAGE='
+USAGE: rpid <pid|-h|-[-]help> [<root_name>=login]
+
+        pid     The PID of the process for which you want to find the root PID.
+
+        root_name
+                The name (not command line) of the root process, for which
+                to find the PID. Defaults to login.
+
+EXAMPLES:
+
+        Any of these will display this help message.
+
+                rpid -h
+                rpid -help
+                rpid --help
+
+        Get the PID of the login process that is the ancestor of the current
+        process.
+
+                rpid $$
+'
+
+# Validate the arguments
+if [[ "$#" -lt 1 || "$#" -gt 2 ]]; then
+  printf '%s' "${USAGE}" 1>&2
+  exit 128
+fi
+
+pid="$1"
+
+# Check if the user needs help
+if [[ "${pid}" =~ ^(-h|-(-)?help)$ ]]; then
+  printf '%s' "${USAGE}" 1>&2
+  exit 0
+fi
+
+root_name="${2:-login}"
+
+get_info() {
+  local -ri current_pid="$1"
+  if [[ ! -r "/proc/${current_pid}/status" ]]; then exit 1; fi
+  mapfile info < \
+    <(grep --null -E -m 2 '^(Name|PPid):' "/proc/${current_pid}/status" \
+      | sort | cut -f 2)
+  name="${info[0]##[[:space:]]}"
+  name="${name%%[[:space:]]}"
+  ppid="${info[1]##[[:space:]]}"
+  ppid="${ppid%%[[:space:]]}"
+}
+
+next_pid="${pid}"
+while [[ "${name}" != "${root_name}" && "${ppid}" -ne 1 ]]; do
+  get_info "${next_pid}";
+  name_pid="${next_pid}"
+  next_pid="${ppid}"
+done
+
+if [[ "${name}" != "${root_name}" ]]; then exit 1; fi
+printf '%s\n' "${name_pid}"
+
