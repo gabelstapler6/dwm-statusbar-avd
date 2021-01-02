@@ -11,17 +11,14 @@ The Daemon
 The daemon creates a modular status bar by updating the X root window name
 when it receives a request on its named pipe. It takes an ordered list of
 modules as a parameter, and calls a function in each module to compute a
-section of the status bar. Each section is cached and only recomputed upon
-request. These requests are made by writing to a named pipe that the daemon
-creates, `/tmp/avdd-fifo`.
+section of the status bar when it receives a request to update that section.
 
 The Scheduler
 -------------
 
-The scheduler creates requests by writing a module name to the named pipe for
-each module it wants the daemon to run to update that section of the status
-bar. It can send requests immediately, after some delay, or repeatedly at
-some interval.
+The scheduler creates requests by writing a module name to the named pipe
+for each section of the status bar that it wants to daemon to update. It can
+send requests immediately, after some delay, or repeatedly at some interval.
 
 Installation
 ------------
@@ -104,27 +101,41 @@ of the status bar (so it should be concise with no newline characters). Then
 place your script in the `mod` directory.
 
 To include your module output in the status bar, start the daemon with
-the module list parameter and include the name of your script in the
+the module list parameter and include the name of your module in the
 list. For instance, if you wanted to have a status bar that consisited of
 your hypothetical weather-wttr module followed by the date/time, you would
 start the daemon like this: `avdd 'weather-wttr dt' &`.
 
-Please feel free to submit a pull request to have your module
-included as part of this repo. And for inspiration and examples of
-modules you might want to create, check out the bar-functions from
-[dwm-bar](https://github.com/joestandring/dwm-bar), which this project draws
-heavily upon. Please note that those bar-functions are not compatible with
-the akuma-v-dwm daemon, but they could very easily be modified to work with
-this daemon.
+### Reserved Module Names
+
+Module names may not begin with `daem-` or `daem_` because this namespace
+is reserved for requests that the daemon understands natively. The daemon
+implements the following native requests:
+
+- `daem_all`
+    Update all status bar sections.
+- `daem_quit`
+    Quit the daemon.
 
 Commands
 --------
 
-In the `cmd` directory are shell scripts that perform actions that effect
-the status bar and update the status bar, such as changing the backlight or
-volume levels. These commands can be bound to keys, so the action will be
-carried out and the status bar will be updated when the key is pressed.
+In the `cmd` directory are shell scripts that perform actions that effect and
+update the status bar, such as changing the backlight or volume levels. These
+commands can be bound to keys, so the action will be carried out and the
+status bar will be updated when the key is pressed.
 
-Please feel free to submit a pull request to have your command included as
-part of this repo.
+Contributing
+------------
+
+The goal of this project is to learn how to do neat things on Linux and
+with shell scripts. A great way to do that is to just start hacking. So if
+you have an ideas for how to improve the application, or want to share your
+modules and commands, please submit a pull request. Don't by shy!
+
+For inspiration and examples of modules you might want to create, check out
+the bar-functions from [dwm-bar](https://github.com/joestandring/dwm-bar),
+which this project draws heavily upon. Please note that those bar-functions
+are not compatible with the akuma-v-dwm daemon, but they could very easily
+be modified to work with this daemon.
 
