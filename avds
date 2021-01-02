@@ -1,7 +1,7 @@
 #!/bin/bash
 
 USAGE="
-USAGE: avds <mod_list> [<when>] [<repeat>]
+USAGE: avds <mod_list|-h|-[-]help> [<when>] [<repeat>]
 
         mod_list
                 A comma or space separated list of modules to request that
@@ -18,6 +18,12 @@ USAGE: avds <mod_list> [<when>] [<repeat>]
                 to <when>.
 
 EXAMPLES:
+
+        Any of these will display this help message.
+
+                avds -h
+                avds -help
+                avds --help
 
         If there are volume and backlight modules named 'vol' and 'bl' that
         update the volume and backlight statuses, send a requst to update
@@ -52,6 +58,14 @@ if [[ "$#" -lt 1 || "$#" -gt 3 ]]; then
 fi
 
 IFS=', ' read -r -a mods <<< "$1"
+
+# Check if the user needs help
+# shellcheck disable=SC2128
+if [[ "${mods}" =~ ^(-h|-(-)?help)$ ]]; then
+  printf '%s' "${USAGE}" 1>&2
+  exit 0
+fi
+
 when="${2:-0}"
 repeat="$3"
 
