@@ -44,7 +44,7 @@ EXAMPLES:
                 avds 'bat,dt' m true
 "
 DAEMON=avdd
-FIFO=/tmp/"${DAEMON}"-fifo-"$("$(dirname "$0")"/rpid $$)"
+FIFO=/tmp/"${DAEMON}"-fifo-"$("$(dirname "$0")"/rpid)"
 
 # Convert integer milliseconds to floating point seconds
 ms_to_s () {

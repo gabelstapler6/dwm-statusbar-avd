@@ -44,7 +44,7 @@ DEFAULT_SEP_L='| '
 DEFAULT_SEP_R=' '
 DEFAULT_SUF=' '
 MOD_DIR="$(dirname "$0")"/mod
-FIFO=/tmp/avdd-fifo-"$("$(dirname "$0")"/rpid $$)"
+FIFO=/tmp/avdd-fifo-"$("$(dirname "$0")"/rpid)"
 
 mod_list="${1-${DEFAULT_MOD_LIST}}"
 
