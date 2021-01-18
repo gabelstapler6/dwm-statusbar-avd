@@ -78,7 +78,7 @@ for mod in "${mods[@]}"; do
   fi
 done
 
-# Construct and display the status by looping over the cached values in  order
+# Construct and display the status by looping over the cached values in order
 draw_status() {
   local mod stat
   for mod in "${stat_cache_ordered_mods[@]}"; do
@@ -100,7 +100,7 @@ draw_status
 # function to get the new value for that section of the status bar. If any
 # of the new values are different from the cached ones, update the cache
 # and redraw the status bar once after all the mods are processed.
-process_mods () {
+process_mods() {
   local mod new_val is_changed
   for mod in "$@"; do
     if [[ -v stat_cache[${mod}] ]]; then

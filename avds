@@ -47,7 +47,7 @@ DAEMON=avdd
 FIFO=/tmp/"${DAEMON}"-fifo-"$("$(dirname "$0")"/rpid)"
 
 # Convert integer milliseconds to floating point seconds
-ms_to_s () {
+ms_to_s() {
   printf '%.3f' "${1}e-3"
 }
 
