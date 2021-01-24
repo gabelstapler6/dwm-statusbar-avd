@@ -1,0 +1,95 @@
+#!/bin/bash
+
+if [[ -v IS_SOURCED_UTIL ]]; then return 0; fi
+IS_SOURCED_UTIL=1
+
+# Show the usage if requested and exit
+maybe_show_usage_and_exit() {
+  local -r arg="${1}"
+  if [[ "${arg}" =~ ^(-h|-(-)?help)$ ]]; then
+    printf %s "${USAGE:-No help}" 1>&2
+    exit 0
+  fi
+}
+
+# Get the ms since the epoch until now
+tick_now() {
+  local -r out_name="${1}"
+  printf -v "${out_name}" %.0f "$(date +%s.%N)"e3
+}
+
+# Get the ms since the epoch until the given at spec
+tick_at() {
+  local -r out_name="${1}" at_spec="${2}"
+  local -i now_ms now_s h m s s_to_d
+  tick_now now_ms
+  if [[ "${at_spec}" =~ ^[0-9]+$ ]]; then
+    printf -v "${out_name}" %d $((now_ms + at_spec))
+  else
+    now_s=$((now_ms / 1000))
+    case "${at_spec}" in
+      m)
+        printf -v "${out_name}" %d $(((now_s + 60 - now_s % 60) * 1000))
+        ;;
+      h)
+        printf -v "${out_name}" %d $(((now_s + 3600 - now_s % 3600) * 1000))
+        ;;
+      d)
+        # Work off the local time to account for the timezone since the
+        # epoch is aligned to a UTC day boundary
+        read -r h m s < <(date +'%H %M %S')
+        s_to_d=$(((24 - h) * 3600 - m * 60 - s))
+        printf -v "${out_name}" %d $(((now_s + s_to_d) * 1000))
+        ;;
+      *)
+        return 1
+        ;;
+    esac
+  fi
+}
+
+# Get the ms from now until the given ms since the epoch
+ms_until() {
+  local -r out_name="${1}" until_ms="${2}"
+  local -i now_ms
+  tick_now now_ms
+  printf -v "${out_name}" %d $((until_ms - now_ms))
+}
+
+# Convert integer milliseconds to floating point seconds
+ms_to_s() {
+  local -r out_name="${1}"
+  local -ri ms="${2}"
+  printf -v "${out_name}" %.3f "${ms}e-3"
+}
+
+# Map the module file name to the module function
+mod_to_fn() {
+  local -r out_name="${1}" file_name="${2}"
+  printf mod_%s "${file_name//-/_}"
+}
+
+# Get the pid of the ancestor process with the given name
+root_pid() {
+  local -r out_name="${1}"
+  local -ri pid="${2:-$$}"
+  local -r root_name="${3:-login}"
+  local -i current_pid="${pid}"
+  local name
+  while [[ "${current_pid}" -ne 1 ]]; do
+    if [[ ! -r "/proc/${current_pid}/status" ]]; then return 1; fi
+    mapfile info < \
+      <('grep' --null -E -m 2 '^(Name|PPid):' "/proc/${current_pid}/status" \
+        | 'sort' | 'cut' -f 2)
+    name="${info[0]##[[:space:]]}"
+    name="${name%%[[:space:]]}"
+    if [[ "${name}" = "${root_name}" ]]; then
+      printf -v "${out_name}" %s "${current_pid}"
+      return 0
+    fi
+    current_pid="${info[1]##[[:space:]]}"
+    current_pid="${current_pid%%[[:space:]]}"
+  done
+  return 1
+}
+
