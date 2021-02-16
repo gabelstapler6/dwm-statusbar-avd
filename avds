@@ -87,7 +87,7 @@ while [[ "${first_run}" -eq 1 || -n "${repeat}" ]]; do
     else
       case "${when}" in
         m)
-          sleep $((60 - $(date +%S)))
+          sleep $((60 - 10#$(date +%S)))
           ;;
         h)
           readarray -t ms < <(date +'%M%n%S')
