@@ -2,7 +2,7 @@
 
 mod_dt () {
   # Customizable configuration constants
-  local -r DEFAULT_FMT='%a %d %I:%M%p'
+  local -r DEFAULT_FMT='%a %b %d %I:%M%p'
   local -r DEFAULT_PRE=''
   local -r DEFAULT_SUF=''
 
@@ -10,6 +10,7 @@ mod_dt () {
   local -r pre="${2-${DEFAULT_PRE}}"
   local -r suf="${3-${DEFAULT_SUF}}"
 
-  printf '%b%b%b' "${pre}" "$(date +"${fmt}")" "${suf}"
+  # TZ=Europe/Berlin to specify the timezone before date command
+  printf '%b%b%b' "${pre}" "$(TZ=Europe/Berlin date +"${fmt}")" "${suf}"
 }
 
