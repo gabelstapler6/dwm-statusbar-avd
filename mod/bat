@@ -4,13 +4,19 @@ mod_bat () {
   # Customizable configuration constants
   local -r DEFAULT_CNT=1
   local -r DEFAULT_PRE_PLG=' '
-  local -r DEFAULT_PRE_UPLG=' '
   local -r DEFAULT_PRE_UNK=' '
+
+  # Battery status
+  local -r PRE_BAT_EMPTY=' '
+  local -r PRE_BAT_QUARTER=' '
+  local -r PRE_BAT_HALF=' '
+  local -r PRE_BAT_THREEQUARTER=' '
+  local -r PRE_BAT_FULL=' '
+
   local -r DEFAULT_SUF='%'
 
   local -r cnt="${1:-${DEFAULT_CNT}}"
   local -r pre_plg="${2-${DEFAULT_PRE_PLG}}"
-  local -r pre_uplg="${3-${DEFAULT_PRE_UPLG}}"
   local -r pre_unk="${4-${DEFAULT_PRE_UNK}}"
   local -r suf="${5-${DEFAULT_SUF}}"
 
@@ -23,8 +29,13 @@ mod_bat () {
 
   # Get the corresponding status and capacity for each battery
   for cap_file in "${cap_files[@]}"; do
+    
     # Compute the name of the status file
     printf -v stat_file '%s' "$(dirname "${cap_file}")/status";
+
+    # Get the current battery capacity
+    read -r cap < "${cap_file}"
+
     # Get the current battery status
     if [[ -r "${stat_file}" ]]; then
       read -r stat < "${stat_file}"
@@ -33,7 +44,24 @@ mod_bat () {
           printf -v res '%b %b' "${res}" "${pre_plg}"
           ;;
         Discharging)
-          printf -v res '%b %b' "${res}" "${pre_uplg}"
+
+          case "${cap}" in
+            [0-10]*)
+              printf -v res '%b %b' "${res}" "${PRE_BAT_EMPTY}" 
+              ;;
+            [11-25]*)
+              printf -v res '%b %b' "${res}" "${PRE_BAT_QUARTER}"
+              ;;
+            [26-50]*)
+              printf -v res '%b %b' "${res}" "${PRE_BAT_HALF}"
+              ;;
+            [51-75]*)
+              printf -v res '%b %b' "${res}" "${PRE_BAT_THREEQUARTER}"
+              ;;
+            *)
+              printf -v res '%b %b' "${res}" "${PRE_BAT_FULL}"
+              ;;
+          esac
           ;;
         *)
           printf -v res '%b %b' "${res}" "${pre_unk}"
@@ -42,9 +70,7 @@ mod_bat () {
     else
       printf -v res '%b %b' "${res}" "${pre_unk}"
     fi
-
-    # Get the current battery capacity
-    read -r cap < "${cap_file}"
+    
     printf -v res '%b%3d%b' "${res}" "${cap}" "${suf}"
   done
 
